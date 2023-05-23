@@ -1,0 +1,420 @@
+<html dir="ltr" class="js no-touch" lang="de">
+<head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <!-- leaflet.CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" integrity="sha256-kLaT2GOSpHechhsozzB+flnD+zUyjE2LlfWPgU04xyI=" crossorigin="">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/gokertanrisever/leaflet-ruler@master/src/leaflet-ruler.css" integrity="sha384-P9DABSdtEY/XDbEInD3q+PlL+BjqPCXGcF8EkhtKSfSTr/dS5PBKa9+/PMkW2xsY" crossorigin="anonymous">  
+    
+  <link rel="stylesheet" href="sources/Leaflet-Coordinates-master/dist/Leaflet.Coordinates-0.1.5.ie.css">  
+  <link rel="stylesheet" href="sources/Leaflet-Coordinates-master/dist/Leaflet.Coordinates-0.1.5.css">
+
+  <link rel="stylesheet" href="https://unpkg.com/@geoman-io/leaflet-geoman-free@latest/dist/leaflet-geoman.css" />
+  
+  <link rel="stylesheet" href="sources/jquery-ui-1.13.2.custom/jquery-ui.min.css">
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet-easybutton@2/src/easy-button.css">
+
+
+  <style>
+	  body{
+	    margin:0;
+	    padding:0;
+	  }
+
+    #map{
+        width:100%;
+        height:100vh;
+}
+   .leaflet-pm-toolbar .icon-FRD{
+	background-image:url(img/FRD.png);
+    }
+   .leaflet-pm-toolbar .icon-FRD-air{
+	background-image:url(img/FRD_AIR.png);
+    }
+   .leaflet-pm-toolbar .icon-FRD-sub{
+	background-image:url(img/FRD_SUB.png);
+    }
+   .leaflet-pm-toolbar .icon-HOS{
+	background-image:url(img/HOS.png);
+    }
+   .leaflet-pm-toolbar .icon-HOS-air{
+	background-image:url(img/HOS_AIR.png);
+    }
+   .leaflet-pm-toolbar .icon-HOS-sub{
+	background-image:url(img/HOS_SUB.png);
+    }
+   .leaflet-pm-toolbar .icon-NEU{
+	background-image:url(img/NEU.png);
+    }
+   .leaflet-pm-toolbar .icon-UNK{
+	background-image:url(img/UNK.png);
+    }
+
+
+
+
+
+  </style> 
+</head>
+  <body>
+
+    <div id="map">
+    </div>
+
+
+  <!--main leaflet components-->
+  <!-- <script src="https://unpkg.com/browse/whatwg-fetch@3.2.0/dist/fetch.umd.js"></script>    -->
+  <script src="https://unpkg.com/leaflet@1.0.3/dist/leaflet.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-ajax/2.1.0/leaflet.ajax.js"></script>
+  <!--Leaflet PlugIn - Ruler -->
+  <script src="https://cdn.jsdelivr.net/gh/gokertanrisever/leaflet-ruler@master/src/leaflet-ruler.js" integrity="sha384-N2S8y7hRzXUPiepaSiUvBH1ZZ7Tc/ZfchhbPdvOE5v3aBBCIepq9l+dBJPFdo1ZJ" crossorigin="anonymous"></script>
+  <!--Leaflet PlugIn - Coordinates -->  
+  <script src="sources/Leaflet-Coordinates-master/dist/Leaflet.Coordinates-0.1.5.src.js"></script>
+  <!--GEORASTER for implementing geojson-->  
+  <script src="https://unpkg.com/georaster@1.5.6/dist/georaster.browser.bundle.min.js"></script>
+  <script src="https://unpkg.com/georaster-layer-for-leaflet/dist/georaster-layer-for-leaflet.min.js"></script>
+  <!--GEOTIFF for implementing geojson (second way)-->
+  <script src="https://cdn.jsdelivr.net/npm/geotiff"></script>
+  <!-- GEOMAN -->
+  <script src="https://unpkg.com/@geoman-io/leaflet-geoman-free@latest/dist/leaflet-geoman.min.js"></script>  
+  <!--BUTTON-->
+  <script src="https://cdn.jsdelivr.net/npm/leaflet-easybutton@2/src/easy-button.js"></script>
+
+
+  <!--include Var as JS file-->
+  <script src="data/ex_area.js"></script>
+  <script src="data/submarine_cable.js"></script>
+  <script src="data/eez.js"></script>
+
+<script>
+  //basic funtion definitions
+  function downloadObjectAsJson(exportObj, exportName){
+    var dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportObj));
+    var downloadAnchorNode = document.createElement('a');
+    downloadAnchorNode.setAttribute("href",     dataStr);
+    downloadAnchorNode.setAttribute("download", exportName + ".geojson");
+    document.body.appendChild(downloadAnchorNode); // required for firefox
+    downloadAnchorNode.click();
+    downloadAnchorNode.remove();
+  }
+
+
+
+
+  // map initialization
+  var map = L.map('map').setView([55.002409504428506,19.085490583984324], 9);
+
+  //ADDING MAP LAYERS
+  //openstreetmap Layer
+  var osm = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+  });
+
+  //Dark Layer
+  var CartoDB_DarkMatter = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+	  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+	  subdomains: 'abcd',
+	  maxZoom: 20
+  });
+
+  //light Layer
+  var CartoDB_Positron = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+	  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+	  subdomains: 'abcd',
+	  maxZoom: 20
+  });
+
+  //satellite Layer
+  var GeoportailFrance_orthos = L.tileLayer('https://wxs.ign.fr/{apikey}/geoportail/wmts?REQUEST=GetTile&SERVICE=WMTS&VERSION=1.0.0&STYLE={style}&TILEMATRIXSET=PM&FORMAT={format}&LAYER=ORTHOIMAGERY.ORTHOPHOTOS&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}', {
+	  attribution: '<a target="_blank" href="https://www.geoportail.gouv.fr/">Geoportail France</a>',
+	  bounds: [[-75, -180], [81, 180]],
+	  minZoom: 2,
+	  maxZoom: 19,
+	  apikey: 'choisirgeoportail',
+	  format: 'image/jpeg',
+	  style: 'normal'
+  });
+  //marinetraffic-nautical-chart Layer
+  var NauticalChart = L.tileLayer('https://www.marinetraffic.com/TMS/1.0.0/TX97/{z}/{x}/{y}.png?v=3',{
+    attribution:'&copy; <a href="https://www.i4-insight.com/" target="_blank">i4-insight</a>',
+    edgeBufferTiles: 2,
+    maxNativeZoom: 16,
+    tms: true,
+    maxZoom: 19,
+    minZoom: 2,
+  });
+
+  //adding openstreetmap as supporting main
+  osm.addTo(map); 
+
+  //clone maps from marinetraffic
+  const TOKEN =
+  'pk.eyJ1IjoibWFwYm94LW9mZmljaWFsIiwiYSI6ImNrcHBnMG5yMDA2eWgyb2s5MDI4NG10OXAifQ.S65o8bcu6oqsp6HQnWYJfw';
+
+  const baseUrl = 'https://api.mapbox.com/';
+
+  const URLV4 = name =>
+  `${baseUrl}v4/${name}/{z}/{x}/{y}.jpg90?access_token=${TOKEN}`;
+
+  const URLV1 = name =>
+  `${baseUrl}styles/v1/${name}/tiles/{z}/{x}/{y}?access_token=${TOKEN}`;
+
+  const STYLES = {
+    dark: { name: 'mapbox-official/ckpqkpnpo21bi18pswix7crxa', version: 1 },
+    simple: { name: 'mapbox/light-v10', version: 1 },
+    standard: { name: 'mapbox/streets-v11', version: 1 },
+    satellite: { name: 'mapbox-official/ckpqknefy216x17t9b07w8xmf', version: 1 },
+  };
+
+  const tileURL = style => {
+    const { version, name } = style;
+
+      return version === 1
+        ? URLV1(name)
+        : version === 4
+        ? URLV4(name)
+        : URLV1('standard');
+  };
+
+  const layers = style =>
+    typeof L !== 'undefined'
+      ? L.tileLayer(tileURL(style), {
+        attribution:
+          '&copy; <a href="https://www.mapbox.com/map-feedback/" target="_blank">Mapbox</a> &copy; <a href="http://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>',
+        edgeBufferTiles: 2,
+        maxZoom: 19,
+        minZoom: 2,
+        tileSize: 512,
+        zoomOffset: -1,
+  }):'';
+
+  var baseMaps = {
+	  "OSM": osm,
+
+    'Dark map': layers(STYLES.dark),
+	  'Satellite map': layers(STYLES.satellite),
+	  "Dark": CartoDB_DarkMatter,
+	  "Light":CartoDB_Positron,
+    //'Simple map': layers(STYLES.simple),
+    //'Standard map': layers(STYLES.standard),
+	  //"Satellite":GeoportailFrance_orthos
+	  "Nautical":NauticalChart
+  };
+
+
+
+// fixed Layers from JS files
+var exampleAreas = L.geoJSON(var_example).addTo(map); // disblay polygon areas
+
+var SubmarineCable = L.geoJSON(SubCableOne,{
+    style: function (feature) {
+        return {color: feature.properties.color};
+    },
+    weight: 3,
+    opacity: 0.5
+}).bindPopup(function (layer) {
+    return layer.feature.properties.slug;
+}).addTo(map); // disblay ubmarine cable
+
+
+var EEZ_Layer = L.geoJSON(EEZ,{
+    weight: 3,
+    opacity: 0.5
+}).bindPopup(function (layer) {
+    return layer.feature.properties.LINE_NAME + "<br><a href='" + layer.feature.properties.URL1 + "' target='_blank' >" + layer.feature.properties.SOURCE1 +"   </a>"; //+ '<a href='+layer.feature.properties.Source1+ '>' + layer.feature.properties.Source1 + '<\a>'
+}).addTo(map); 
+
+
+//Layercontrol
+  var overlayMaps = {
+    "Submarine Cable": SubmarineCable,
+    "EEZ":EEZ_Layer
+    
+  };
+  var layerControl = L.control.layers(baseMaps, overlayMaps).addTo(map);
+
+//PLUGIN Ruler
+  var ruler_options = {
+    position: 'topright',         // Leaflet control position option
+    circleMarker: {               // Leaflet circle marker options for points used in this plugin
+      color: 'red',
+      radius: 2
+    },
+    lineStyle: {                  // Leaflet polyline options for lines used in this plugin
+      color: 'red',
+      dashArray: '1,6'
+    },
+    lengthUnit: {                 // You can use custom length units. Default unit is kilometers.
+      display: 'Nm',              // This is the display value will be shown on the screen. Example: 'meters'
+      decimal: 2,                 // Distance result will be fixed to this value. 
+      factor: 0.539956803,               // This value will be used to convert from kilometers. Example: 1000 (from kilometers to meters)  
+      label: 'Distance:'           
+    },
+    angleUnit: {
+      display: '&deg;',           // This is the display value will be shown on the screen. Example: 'Gradian'
+      decimal: 2,                 // Bearing result will be fixed to this value.
+      factor: null,                // This option is required to customize angle unit. Specify solid angle value for angle unit. Example: 400 (for gradian).
+      label: 'Bearing:'
+    }
+  };
+  L.control.ruler(ruler_options).addTo(map);
+
+
+//PLUGIN Coordinates
+  L.control.coordinates({
+	  position:"bottomleft", //optional default "bootomright"
+	  decimals:2, //optional default 4
+	  labelTemplateLat:"Latitude: {y}", //optional default "Lat: {y}"
+	  labelTemplateLng:"Longitude: {x}", //optional default "Lng: {x}"
+	  enableUserInput:true, //optional default true
+	  useDMS:true, //optional default false
+	  useLatLngOrder: true //ordering of labels, default false-> lng-lat
+  }).addTo(map);
+
+
+
+map.pm.addControls({  
+  position: 'topleft',  
+  drawText: false,  
+});  
+
+//Costom toolbar for adding Contacts
+
+const ICON_SIZE = 40;
+
+
+var FRD_Icon = L.icon({
+  shadowUrl: null,
+  iconAnchor: new L.Point((ICON_SIZE/2),(ICON_SIZE/2)),
+  iconSize: new L.Point(ICON_SIZE, ICON_SIZE),
+  iconUrl: 'img/FRD.png'
+})
+var FRD_AIR_Icon = L.icon({
+  shadowUrl: null,
+  iconAnchor: new L.Point((ICON_SIZE/2),(ICON_SIZE/2)),
+  iconSize: new L.Point(ICON_SIZE, ICON_SIZE),
+  iconUrl: 'img/FRD_AIR.png'
+})
+var FRD_SUB_Icon = L.icon({
+  shadowUrl: null,
+  iconAnchor: new L.Point((ICON_SIZE/2),(ICON_SIZE/2)),
+  iconSize: new L.Point(ICON_SIZE, ICON_SIZE),
+  iconUrl: 'img/FRD_SUB.png'
+})
+var HOS_Icon = L.icon({
+  shadowUrl: null,
+  iconAnchor: new L.Point((ICON_SIZE/2),(ICON_SIZE/2)),
+  iconSize: new L.Point(ICON_SIZE, ICON_SIZE),
+  iconUrl: 'img/HOS.png'
+})
+var HOS_AIR_Icon = L.icon({
+  shadowUrl: null,
+  iconAnchor: new L.Point((ICON_SIZE/2),(ICON_SIZE/2)),
+  iconSize: new L.Point(ICON_SIZE, ICON_SIZE),
+  iconUrl: 'img/HOS_AIR.png'
+})
+var HOS_SUB_Icon = L.icon({
+  shadowUrl: null,
+  iconAnchor: new L.Point((ICON_SIZE/2),(ICON_SIZE/2)),
+  iconSize: new L.Point(ICON_SIZE, ICON_SIZE),
+  iconUrl: 'img/HOS_SUB.png'
+})
+var NEU_Icon = L.icon({
+  shadowUrl: null,
+  iconAnchor: new L.Point((ICON_SIZE/2),(ICON_SIZE/2)),
+  iconSize: new L.Point(ICON_SIZE, ICON_SIZE),
+  iconUrl: 'img/NEU.png'
+})
+var UNK_Icon = L.icon({
+  shadowUrl: null,
+  iconAnchor: new L.Point((ICON_SIZE/2),(ICON_SIZE/2)),
+  iconSize: new L.Point(ICON_SIZE, ICON_SIZE),
+  iconUrl: 'img/UNK.png'
+})
+
+
+
+var FRDMarker = map.pm.Toolbar.copyDrawControl('drawMarker',{name: "FRDMarker",title: 'add Friend',className: 'icon-FRD',block: 'custom'})
+FRDMarker.drawInstance.setOptions({markerStyle: {icon : FRD_Icon}});
+
+var FRD_AIRMarker = map.pm.Toolbar.copyDrawControl('drawMarker',{name: "FRD_AIRMarker",title: 'add Friend-Air',className: 'icon-FRD-air',block: 'custom'})
+FRD_AIRMarker.drawInstance.setOptions({markerStyle: {icon : FRD_AIR_Icon}});
+
+var FRD_SUBMarker = map.pm.Toolbar.copyDrawControl('drawMarker',{name: "FRD_SUBMarker",title: 'add Friend-Sub',className: 'icon-FRD-sub',block: 'custom'})
+FRD_SUBMarker.drawInstance.setOptions({markerStyle: {icon : FRD_SUB_Icon}});
+
+var HOSMarker = map.pm.Toolbar.copyDrawControl('drawMarker',{name: "HOSMarker",title: 'add Hostile',className: 'icon-HOS',block: 'custom'})
+HOSMarker.drawInstance.setOptions({markerStyle: {icon : HOS_Icon}});
+
+var HOS_AIRMarker = map.pm.Toolbar.copyDrawControl('drawMarker',{name: "HOS_AIRMarker",title: 'add Hostile-Air',className: 'icon-HOS-air',block: 'custom'})
+HOS_AIRMarker.drawInstance.setOptions({markerStyle: {icon : HOS_AIR_Icon}});
+
+var HOS_SUBMarker = map.pm.Toolbar.copyDrawControl('drawMarker',{name: "HOS_SUBMarker",title: 'add Hostile-Sub',className: 'icon-HOS-sub',block: 'custom'})
+HOS_SUBMarker.drawInstance.setOptions({markerStyle: {icon : HOS_SUB_Icon}});
+
+var NEUMarker = map.pm.Toolbar.copyDrawControl('drawMarker',{name: "NEUMarker",title: 'add Neutral',className: 'icon-NEU',block: 'custom'})
+NEUMarker.drawInstance.setOptions({markerStyle: {icon : NEU_Icon}});
+
+var UNKMarker = map.pm.Toolbar.copyDrawControl('drawMarker',{name: "UNKMarker",title: 'add Unknown',className: 'icon-UNK',block: 'custom'})
+UNKMarker.drawInstance.setOptions({markerStyle: {icon : UNK_Icon}});
+
+
+
+
+// dynamic reload of contact points
+// TODO
+var geojsonLayer = new L.GeoJSON.AJAX("data/Contacts.geojson");       
+geojsonLayer.addTo(map);
+
+//!!
+//save as geosjon
+var helloPopup = L.popup().setContent('Hello World!');
+
+L.easyButton('fa-globe', function(btn, map){
+
+//hide the overlay layers to strip them from export
+
+map.removeLayer(SubmarineCable);
+map.removeLayer(EEZ_Layer);
+
+
+// Create an empty GeoJSON collection
+var collection = {
+    "type": "FeatureCollection",
+    "features": []
+};
+
+// Iterate the layers of the map
+map.eachLayer(function (layer) {
+    // Check if layer is a marker
+    if (layer instanceof L.Marker) {
+        // Create GeoJSON object from marker
+        var geojson = layer.toGeoJSON();
+        // Push GeoJSON object to collection
+        collection.features.push(geojson);
+    } else if (layer instanceof L.Path) {
+        // Create GeoJSON object from marker
+        var geojson = layer.toGeoJSON();
+        // Push GeoJSON object to collection
+        collection.features.push(geojson);
+    }
+});
+
+// Log GeoJSON collection to console
+console.log(collection);
+
+downloadObjectAsJson(collection, 'export')
+
+
+
+
+
+
+}).addTo(map);
+
+
+
+</script>
+</body>
+</html>
